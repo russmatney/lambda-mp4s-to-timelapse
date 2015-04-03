@@ -5,6 +5,9 @@ var validate = require('lambduh-validate');
 var download = require('lambduh-get-s3-object');
 var upload = require('lambduh-put-s3-object');
 
+var AWS = require('aws-sdk');
+var s3 = new AWS.S3();
+
 var pathToRenamePngs = './bin/rename-pngs.sh';
 var pathToFilesToMp4 = './bin/files-to-mp4.sh';
 
@@ -13,7 +16,7 @@ exports.handler = function(event, context) {
 
   event = {
     bucket: 'russbosco',
-    key: 'events/timelapseparty/0001-CH1CDI-0.png'
+    prefix: 'events/timelapseparty/'
   }
 
   //create /tmp/pngs/
@@ -24,12 +27,51 @@ exports.handler = function(event, context) {
 
   //download pngs
   .then(function(result) {
-    console.log('downloading');
-    return download(result, {
-      srcBucket: event.bucket,
-      srcKey: event.key,
-      downloadFilepath: '/tmp/pngs/' + path.basename(event.key)
-    })
+    console.log('getting png keys');
+    var def = Q.defer();
+
+    s3.listObjects({
+      Bucket: event.bucket,
+      Prefix: event.prefix
+    }, function(err, data) {
+      console.log('err');
+      console.log(err);
+      console.log('data');
+      console.log(data.Contents[0]);
+
+      var keys = data.Contents.map(function(object) {
+        if (/\.png$/.test(object.Key))
+          return object.Key;
+      })
+      keys = keys.filter(function(v) { return v; });
+
+      console.log(keys);
+      console.log('downloading pngs');
+
+      var promises = [];
+      keys.forEach(function(key) {
+
+        promises.push(download(result, {
+          srcBucket: event.bucket,
+          srcKey: key,
+          downloadFilepath: '/tmp/pngs/' + path.basename(key)
+        }))
+
+      });
+
+      console.log('promises');
+      console.log(promises);
+
+      Q.all(promises)
+        .then(function(results) {
+          console.log('downloaded!');
+          console.log(results);
+          def.resolve(results[0]);
+        });
+
+    });
+
+    return def.promise;
   })
 
   //rename, mv pngs
@@ -64,7 +106,7 @@ exports.handler = function(event, context) {
     console.log('uploading');
     return upload(result, {
       dstBucket: event.bucket,
-      dstKey: path.dirname(event.key) + '/000000timelapse.mp4',
+      dstKey: event.prefix + '----timelapse.mp4',
       uploadFilepath: '/tmp/timelapse.mp4'
     })
   })

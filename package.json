@@ -20,6 +20,7 @@
     "run-sequence": "^1.0.2"
   },
   "dependencies": {
+    "aws-sdk": "^2.1.21",
     "glob": "^5.0.3",
     "graceful-fs": "^3.0.6",
     "lambduh-execute": "^1.2.0",
