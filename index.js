@@ -45,8 +45,11 @@ exports.handler = function(event, context) {
       })
       keys = keys.filter(function(v) { return v; });
 
-      console.log(keys);
       console.log('downloading pngs');
+
+
+      keys = keys.slice(0, 40)
+      console.log(keys);
 
       var promises = [];
       keys.forEach(function(key) {
@@ -58,6 +61,7 @@ exports.handler = function(event, context) {
         }))
 
       });
+
 
       console.log('promises');
       console.log(promises);
