@@ -8,9 +8,6 @@ var upload = require('lambduh-put-s3-object');
 var AWS = require('aws-sdk');
 var s3 = new AWS.S3();
 
-var pathToRenamePngs = './bin/rename-pngs.sh';
-var pathToFilesToMp4 = './bin/files-to-mp4.sh';
-
 exports.handler = function(event, context) {
   var result = {};
 
@@ -80,9 +77,14 @@ exports.handler = function(event, context) {
 
   //rename, mv pngs
   .then(function(result) {
+    return execute({
+      shell: 'cp /var/task/rename-pngs.sh /tmp/.; chmod 755 /tmp/rename-pngs.sh;'
+    });
+  })
+  .then(function(result) {
     console.log('renaming');
     return execute(result, {
-      bashScript: pathToRenamePngs,
+      bashScript: '/tmp/rename-pngs.sh',
       bashParams: [
         '/tmp/pngs/*.png',// input files
         '/tmp/renamed-pngs/'//output dir
@@ -93,9 +95,14 @@ exports.handler = function(event, context) {
 
   //convert pngs to video with song
   .then(function(result) {
+    return execute({
+      shell: 'cp /var/task/files-to-mp4.sh /tmp/.; chmod 755 /tmp/files-to-mp4.sh;'
+    });
+  })
+  .then(function(result) {
     console.log('creating timelapse');
     return execute(result, {
-      bashScript: pathToFilesToMp4,
+      bashScript: '/tmp/files-to-mp4.sh',
       bashParams: [
         '/tmp/renamed-pngs/%04d.png',//input files
         '/tmp/song.mp3',//input song
