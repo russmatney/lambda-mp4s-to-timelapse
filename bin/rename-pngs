@@ -1,4 +1,6 @@
-#/bin/bash
+#!/bin/bash
+
+echo "renaming script running"
 
 X=0
 for f in $1; do

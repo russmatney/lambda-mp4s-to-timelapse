@@ -5,6 +5,8 @@ var validate = require('lambduh-validate');
 var download = require('lambduh-get-s3-object');
 var upload = require('lambduh-put-s3-object');
 
+process.env['PATH'] = process.env['PATH'] + ':/tmp/:' + process.env['LAMBDA_TASK_ROOT']
+
 var AWS = require('aws-sdk');
 var s3 = new AWS.S3();
 
@@ -12,15 +14,17 @@ exports.handler = function(event, context) {
   var start = new Date();
   var result = {};
 
-  event = {
-    bucket: 'russbosco',
-    prefix: 'events/timelapseparty/'
-  }
-
   //create /tmp/pngs/
   execute(result, {
     shell: 'mkdir -p /tmp/pngs/; mkdir -p /tmp/renamed-pngs/;',
     logOutput: true
+  })
+
+  .then(function(result) {
+    return execute(result, {
+      shell: 'echo "ls /tmp/"; ls /tmp/; echo "ls /var/task/"; ls /var/task/;',
+      logOutput: true
+    })
   })
 
   //download pngs
@@ -32,34 +36,36 @@ exports.handler = function(event, context) {
       Bucket: event.bucket,
       Prefix: event.prefix
     }, function(err, data) {
+      if (err) def.reject(err);
+      else {
 
-      var keys = data.Contents.map(function(object) {
-        if (/\.png$/.test(object.Key))
-          return object.Key;
-      })
-      keys = keys.filter(function(v) { return v; });
+        var keys = data.Contents.map(function(object) {
+          if (/\.png$/.test(object.Key))
+            return object.Key;
+        })
+        keys = keys.filter(function(v) { return v; });
 
-      console.log('downloading pngs');
+        keys = keys.slice(0, 100)
+        console.log('downloading ' + keys.length + ' pngs');
 
-      keys = keys.slice(0, 200)
-      console.log(keys);
-
-      var promises = [];
-      keys.forEach(function(key) {
-
-        promises.push(download(result, {
-          srcBucket: event.bucket,
-          srcKey: key,
-          downloadFilepath: '/tmp/pngs/' + path.basename(key)
-        }))
-
-      });
-
-      Q.all(promises)
-        .then(function(results) {
-          console.log('downloaded!');
-          def.resolve(results[0]);
+        var promises = [];
+        keys.forEach(function(key) {
+          promises.push(download(result, {
+            srcBucket: event.bucket,
+            srcKey: key,
+            downloadFilepath: '/tmp/pngs/' + path.basename(key)
+          }))
         });
+
+        Q.all(promises)
+          .then(function(results) {
+            console.log('downloaded!');
+            def.resolve(results[0]);
+          })
+          .fail(function(err) {
+            def.reject(err);
+          });
+      }
     });
 
     return def.promise;
@@ -67,14 +73,23 @@ exports.handler = function(event, context) {
 
   //rename, mv pngs
   .then(function(result) {
+    console.log("moving rename-pngs");
     return execute({
-      shell: 'cp /var/task/rename-pngs.sh /tmp/.; chmod 755 /tmp/rename-pngs.sh;'
+      shell: 'cp /var/task/rename-pngs /tmp/.; chmod 755 /tmp/rename-pngs;'
     });
   })
+
+  .then(function(result) {
+    return execute(result, {
+      shell: 'echo "ls /tmp/"; ls /tmp/; echo "ls /var/task/"; ls /var/task/;',
+      logOutput: true
+    })
+  })
+
   .then(function(result) {
     console.log('renaming');
     return execute(result, {
-      bashScript: '/tmp/rename-pngs.sh',
+      bashScript: '/tmp/rename-pngs',
       bashParams: [
         '/tmp/pngs/*.png',// input files
         '/tmp/renamed-pngs/'//output dir
@@ -85,11 +100,13 @@ exports.handler = function(event, context) {
 
   //convert pngs to video with song
   .then(function(result) {
+    console.log("moving files-to-mp4");
     return execute({
-      shell: 'cp /var/task/files-to-mp4.sh /tmp/.; chmod 755 /tmp/files-to-mp4.sh;'
+      shell: 'cp /var/task/files-to-mp4 /tmp/.; chmod 755 /tmp/files-to-mp4;'
     });
   })
   .then(function(result) {
+    console.log("moving ffmpeg");
     return execute({
       shell: 'cp /var/task/ffmpeg /tmp/.; chmod 755 /tmp/ffmpeg;'
     });
@@ -97,7 +114,7 @@ exports.handler = function(event, context) {
   .then(function(result) {
     console.log('creating timelapse');
     return execute(result, {
-      bashScript: '/tmp/files-to-mp4.sh',
+      bashScript: '/tmp/files-to-mp4',
       bashParams: [
         '/tmp/renamed-pngs/%04d.png',//input files
         '/tmp/song.mp3',//input song
@@ -134,6 +151,7 @@ exports.handler = function(event, context) {
 
   }).fail(function(err) {
     console.log('errorrrrrr');
+    console.log(err);
     context.done(null, err);
   });
 
