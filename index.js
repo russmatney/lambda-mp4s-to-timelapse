@@ -9,6 +9,7 @@ var AWS = require('aws-sdk');
 var s3 = new AWS.S3();
 
 exports.handler = function(event, context) {
+  var start = new Date();
   var result = {};
 
   event = {
@@ -31,10 +32,6 @@ exports.handler = function(event, context) {
       Bucket: event.bucket,
       Prefix: event.prefix
     }, function(err, data) {
-      console.log('err');
-      console.log(err);
-      console.log('data');
-      console.log(data.Contents[0]);
 
       var keys = data.Contents.map(function(object) {
         if (/\.png$/.test(object.Key))
@@ -44,8 +41,7 @@ exports.handler = function(event, context) {
 
       console.log('downloading pngs');
 
-
-      keys = keys.slice(0, 40)
+      keys = keys.slice(0, 200)
       console.log(keys);
 
       var promises = [];
@@ -59,17 +55,11 @@ exports.handler = function(event, context) {
 
       });
 
-
-      console.log('promises');
-      console.log(promises);
-
       Q.all(promises)
         .then(function(results) {
           console.log('downloaded!');
-          console.log(results);
           def.resolve(results[0]);
         });
-
     });
 
     return def.promise;
@@ -97,6 +87,11 @@ exports.handler = function(event, context) {
   .then(function(result) {
     return execute({
       shell: 'cp /var/task/files-to-mp4.sh /tmp/.; chmod 755 /tmp/files-to-mp4.sh;'
+    });
+  })
+  .then(function(result) {
+    return execute({
+      shell: 'cp /var/task/ffmpeg /tmp/.; chmod 755 /tmp/ffmpeg;'
     });
   })
   .then(function(result) {
@@ -133,6 +128,10 @@ exports.handler = function(event, context) {
   .then(function(result){
     console.log('result');
     context.done()
+
+    console.log('duration');
+    console.log((new Date()).getTime() - start.getTime());
+
   }).fail(function(err) {
     console.log('errorrrrrr');
     context.done(null, err);
