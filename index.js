@@ -20,11 +20,21 @@ exports.handler = function(event, context) {
     logOutput: true
   })
 
+  /*
   .then(function(result) {
     return execute(result, {
       shell: 'echo "ls /tmp/"; ls /tmp/; echo "ls /var/task/"; ls /var/task/;',
       logOutput: true
     })
+  })
+  */
+
+  .then(function(result) {
+    return download(result, {
+      srcBucket: event.bucket,
+      srcKey: event.songKey,
+      downloadFilepath: '/tmp/song.mp3'
+    });
   })
 
   //download pngs
@@ -45,7 +55,7 @@ exports.handler = function(event, context) {
         })
         keys = keys.filter(function(v) { return v; });
 
-        keys = keys.slice(0, 100)
+        keys = keys.slice(0, 200)
         console.log('downloading ' + keys.length + ' pngs');
 
         var promises = [];
@@ -73,23 +83,9 @@ exports.handler = function(event, context) {
 
   //rename, mv pngs
   .then(function(result) {
-    console.log("moving rename-pngs");
-    return execute({
-      shell: 'cp /var/task/rename-pngs /tmp/.; chmod 755 /tmp/rename-pngs;'
-    });
-  })
-
-  .then(function(result) {
-    return execute(result, {
-      shell: 'echo "ls /tmp/"; ls /tmp/; echo "ls /var/task/"; ls /var/task/;',
-      logOutput: true
-    })
-  })
-
-  .then(function(result) {
     console.log('renaming');
     return execute(result, {
-      bashScript: '/tmp/rename-pngs',
+      bashScript: '/var/task/rename-pngs',
       bashParams: [
         '/tmp/pngs/*.png',// input files
         '/tmp/renamed-pngs/'//output dir
@@ -100,21 +96,9 @@ exports.handler = function(event, context) {
 
   //convert pngs to video with song
   .then(function(result) {
-    console.log("moving files-to-mp4");
-    return execute({
-      shell: 'cp /var/task/files-to-mp4 /tmp/.; chmod 755 /tmp/files-to-mp4;'
-    });
-  })
-  .then(function(result) {
-    console.log("moving ffmpeg");
-    return execute({
-      shell: 'cp /var/task/ffmpeg /tmp/.; chmod 755 /tmp/ffmpeg;'
-    });
-  })
-  .then(function(result) {
     console.log('creating timelapse');
     return execute(result, {
-      bashScript: '/tmp/files-to-mp4',
+      bashScript: '/var/task/files-to-mp4',
       bashParams: [
         '/tmp/renamed-pngs/%04d.png',//input files
         '/tmp/song.mp3',//input song
