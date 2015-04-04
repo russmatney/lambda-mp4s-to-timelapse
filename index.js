@@ -12,6 +12,10 @@ var s3 = new AWS.S3();
 
 exports.handler = function(event, context) {
   var start = new Date();
+  var pngsDownloaded;
+  var pngsRenamed;
+  var mp4Created;
+  var mp4Uploaded;
   var result = {};
 
   //create /tmp/pngs/
@@ -70,6 +74,7 @@ exports.handler = function(event, context) {
         Q.all(promises)
           .then(function(results) {
             console.log('downloaded!');
+            pngsDownloaded = new Date();
             def.resolve(results[0]);
           })
           .fail(function(err) {
@@ -96,6 +101,7 @@ exports.handler = function(event, context) {
 
   //convert pngs to video with song
   .then(function(result) {
+    pngsRenamed = new Date();
     console.log('creating timelapse');
     return execute(result, {
       bashScript: '/var/task/files-to-mp4',
@@ -110,6 +116,7 @@ exports.handler = function(event, context) {
 
   //upload timelapse
   .then(function(result) {
+    mp4Created = new Date();
     console.log('uploading');
     return upload(result, {
       dstBucket: event.bucket,
@@ -120,6 +127,7 @@ exports.handler = function(event, context) {
 
   //clean up
   .then(function(result){
+    mp4Uploaded = new Date();
     return execute(result, {
       shell: 'rm /tmp/renamed-pngs/*',
       logOutput: true
@@ -130,8 +138,18 @@ exports.handler = function(event, context) {
     console.log('result');
     context.done()
 
-    console.log('duration');
+    console.log('total duration');
     console.log((new Date()).getTime() - start.getTime());
+    console.log('start -> pngs downloaded');
+    console.log(pngsDownloaded.getTime() - start.getTime());
+    console.log('pngs downloaded -> pngs renamed');
+    console.log(pngsRenamed.getTime() - pngsDownloaded.getTime());
+    console.log('renamed -> mp4 created');
+    console.log(mp4Created.getTime() - pngsRenamed.getTime());
+    console.log('mp4 created -> uploaded');
+    console.log(mp4Uploaded.getTime() - mp4Created.getTime());
+    console.log('uploaded -> finished');
+    console.log((new Date()).getTime() - mp4Created.getTime());
 
   }).fail(function(err) {
     console.log('errorrrrrr');
