@@ -1,7 +1,0 @@
-#!/bin/bash
-
-printf "file '%s'\n" $1 >> /tmp/list.txt
-printf "file '%s'\n" $2 >> /tmp/list.txt
-ffmpeg -y -f concat -i /tmp/list.txt -c copy $3
-
-rm /tmp/list.txt

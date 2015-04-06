@@ -14,8 +14,8 @@ exports.handler = function(event, context) {
   var start = new Date();
   var pngsDownloaded;
   var pngsRenamed;
-  var mp41Created;
-  var mp42Created;
+  var mp4sCreated;
+  var mp4sStitched;
   var mp4Uploaded;
   var result = {};
 
@@ -103,44 +103,52 @@ exports.handler = function(event, context) {
 
   //convert pngs to mp4
   .then(function(result) {
+    var def = Q.defer();
     pngsRenamed = new Date();
     console.log('creating timelapse');
-    return execute(result, {
+
+    var promises = [];
+    promises.push(execute(result, {
       bashScript: '/var/task/files-to-mp4',
       bashParams: [
         '/tmp/renamed-pngs/%04d.png',//input files
-        '/tmp/song.mp3',//input song
         '/tmp/timelapse1.mp4'//output filename
       ],
       logOutput: true
-    })
-  })
+    }))
 
-  //convert pngs to mp4
-  .then(function(result) {
-    mp41Created = new Date();
-    console.log('creating timelapse');
-    return execute(result, {
+    promises.push(execute(result, {
       bashScript: '/var/task/files-to-mp4',
       bashParams: [
         '/tmp/renamed-pngs/%04d.png',//input files
-        '/tmp/song.mp3',//input song
         '/tmp/timelapse2.mp4'//output filename
       ],
       logOutput: true
-    })
+    }))
+
+    Q.all(promises)
+      .then(function(results) {
+        def.resolve(results[0]);
+      })
+      .fail(function(err) {
+        def.reject(err);
+      });
+
+    return def.promise;
   })
 
-  //stich mp4s together
+  //stitch mp4s together
   .then(function(result) {
-    mp42Created = new Date();
+    mp4sCreated = new Date();
 
     return execute(result, {
-      bashScript: '/var/task/stich-mp4',
+      bashScript: '/var/task/stitch-mp4s',
       bashParams: [
+        //TODO: handle input videos as array/dir
         '/tmp/timelapse1.mp4', //input
         '/tmp/timelapse2.mp4', //input
-        '/tmp/timelapse-final.mp4'//output filename
+        '/tmp/song.mp3', //input song
+        '/tmp/timelapse-final.mp4' //output filename
       ],
       logOutput: true
     })
@@ -148,6 +156,7 @@ exports.handler = function(event, context) {
 
   //upload timelapse
   .then(function(result) {
+    mp4sStitched = new Date();
     console.log('uploading');
     return upload(result, {
       dstBucket: event.bucket,
@@ -175,12 +184,12 @@ exports.handler = function(event, context) {
     console.log(pngsDownloaded.getTime() - start.getTime());
     console.log('pngs downloaded -> pngs renamed');
     console.log(pngsRenamed.getTime() - pngsDownloaded.getTime());
-    console.log('renamed -> mp4 1 created');
-    console.log(mp41Created.getTime() - pngsRenamed.getTime());
-    console.log('mp4 1 -> mp4 2 created');
-    console.log(mp42Created.getTime() - mp41Created.getTime());
-    console.log('mp4 created -> uploaded');
-    console.log(mp4Uploaded.getTime() - mp42Created.getTime());
+    console.log('renamed -> mp4sCreated');
+    console.log(mp4sCreated.getTime() - pngsRenamed.getTime());
+    console.log('mp4s -> stitched');
+    console.log(mp4sStitched.getTime() - mp4sCreated.getTime());
+    console.log('stitched -> uploaded');
+    console.log(mp4Uploaded.getTime() - mp4sStitched.getTime());
     console.log('uploaded -> finished');
     console.log((new Date()).getTime() - mp4Uploaded.getTime());
 

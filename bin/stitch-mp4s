@@ -1,0 +1,20 @@
+#!/bin/bash
+
+echo 'stitching mp4s'
+
+printf "file '%s'\n" $1 >> /tmp/list.txt
+printf "file '%s'\n" $2 >> /tmp/list.txt
+
+ffmpeg -y \
+  -f concat \
+  -i /tmp/list.txt \
+  -i $3 \
+  -map 0:v \
+  -map 1:a \
+  -c copy \
+  -strict experimental \
+  -codec:a aac \
+  -b:a 192k \
+  -shortest $4
+
+rm /tmp/list.txt
