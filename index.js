@@ -59,7 +59,7 @@ exports.handler = function(event, context) {
           promises.push(download(result, {
             srcBucket: result.bucket,
             srcKey: key,
-            downloadFilepath: '/tmp/videos/video' + vidCount++ + ".mp4"
+            downloadFilepath: '/tmp/videos/' + path.basename(key)
           }))
         });
 
