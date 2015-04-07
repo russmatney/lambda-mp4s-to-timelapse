@@ -21,7 +21,7 @@ exports.handler = function(event, context) {
 
   .then(function(result) {
     return execute(result, {
-      shell: 'mkdir -p /tmp/mp4s'
+      shell: 'mkdir -p /tmp/videos'
     })
   })
 
@@ -47,12 +47,11 @@ exports.handler = function(event, context) {
       else {
 
         var keys = data.Contents.map(function(object) {
-          if (/\.mp4$/.test(object.Key))
+          if (!/final\.mp4$/.test(object.Key) && /\.mp4$/.test(object.Key))
             return object.Key;
         })
         keys = keys.filter(function(v) { return v; });
-
-        console.log(keys.length + ' mp4s found');
+        console.log(keys);
 
         var promises = [];
         var vidCount = 0;
@@ -60,27 +59,27 @@ exports.handler = function(event, context) {
           promises.push(download(result, {
             srcBucket: result.bucket,
             srcKey: key,
-            downloadFilepath: '/tmp/mp4s/video' + vidCount++ + ".mp4"
+            downloadFilepath: '/tmp/videos/video' + vidCount++ + ".mp4"
           }))
         });
 
         Q.all(promises)
           .then(function(results) {
-            console.log('downloaded!');
-            def.resolve(results[0]);
+            console.log('downloaded ' + results.length + ' vids!');
+            var timeout = 1000;
+            setTimeout(function() {
+              console.log(timeout + " ms later...");
+              def.resolve(results[0]);
+            }, timeout);
           })
           .fail(function(err) {
             def.reject(err);
           });
+
       }
     });
 
     return def.promise;
-  })
-
-  //endcard
-  .then(function(result) {
-    return result;
   })
 
   //stitch mp4s together
@@ -88,7 +87,7 @@ exports.handler = function(event, context) {
     return execute(result, {
       bashScript: '/var/task/stitch-mp4s',
       bashParams: [
-        '/tmp/mp4s/*.mp4', //mp4s dir
+        '/tmp/videos/**.mp4', //mp4s dir
         '/tmp/song.mp3', //input song
         '/tmp/timelapse-final.mp4' //output filename
       ],
@@ -110,8 +109,9 @@ exports.handler = function(event, context) {
     console.log('result');
     console.log(result);
     context.done()
+  })
 
-  }).fail(function(err) {
+  .fail(function(err) {
     console.log('errorrrrrr');
     console.log(err);
     context.done(null, err);
