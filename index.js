@@ -17,7 +17,8 @@ exports.handler = function(event, context) {
   validate(result, {
     "bucket": true,
     "songKey": true,
-    "prefix": true
+    "mp4sSrcDir": true,
+    "timelapseDstKey": true
   })
 
   .then(function(result) {
@@ -41,7 +42,7 @@ exports.handler = function(event, context) {
 
     s3.listObjects({
       Bucket: result.bucket,
-      Prefix: result.prefix
+      Prefix: result.mp4sSrcDir
     }, function(err, data) {
       if (err) def.reject(err);
       else {
@@ -98,7 +99,7 @@ exports.handler = function(event, context) {
   .then(function(result) {
     return upload(result, {
       dstBucket: result.bucket,
-      dstKey: result.prefix + '--timelapse-final.mp4',
+      dstKey: result.timelapseDstKey,
       uploadFilepath: '/tmp/timelapse-final.mp4'
     })
   })
