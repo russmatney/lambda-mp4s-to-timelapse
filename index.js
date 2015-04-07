@@ -55,11 +55,12 @@ exports.handler = function(event, context) {
         console.log(keys.length + ' mp4s found');
 
         var promises = [];
+        var vidCount = 0;
         keys.forEach(function(key) {
           promises.push(download(result, {
             srcBucket: result.bucket,
             srcKey: key,
-            downloadFilepath: '/tmp/mp4s/' + path.basename(key)
+            downloadFilepath: '/tmp/mp4s/video' + vidCount++ + ".mp4"
           }))
         });
 
@@ -87,7 +88,7 @@ exports.handler = function(event, context) {
     return execute(result, {
       bashScript: '/var/task/stitch-mp4s',
       bashParams: [
-        '/tmp/mp4s/**.mp4', //mp4s dir
+        '/tmp/mp4s/*.mp4', //mp4s dir
         '/tmp/song.mp3', //input song
         '/tmp/timelapse-final.mp4' //output filename
       ],

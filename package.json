@@ -21,8 +21,6 @@
   },
   "dependencies": {
     "aws-sdk": "^2.1.21",
-    "glob": "^5.0.3",
-    "graceful-fs": "^3.0.6",
     "lambduh-execute": "git://github.com/lambduh/lambduh-execute.git#master",
     "lambduh-get-s3-object": "git://github.com/lambduh/lambduh-get-s3-object.git#master",
     "lambduh-put-s3-object": "^1.0.0",

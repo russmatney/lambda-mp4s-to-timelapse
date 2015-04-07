@@ -2,8 +2,12 @@
 
 rm -f /tmp/list.txt
 
+ls /tmp/
+ls /tmp/mp4s/
+
 for f in $1; do
-  printf "file '%s'\n" $f >> /tmp/list.txt
+  echo "file '../..$f'"
+  echo "file '../..$f'" >> /tmp/list.txt
 done
 
 ffmpeg -y \
