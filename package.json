@@ -1,7 +1,7 @@
 {
-  "name": "bosco.time-lapse",
+  "name": "bosco.mp4s-to-timelapse",
   "version": "1.0.0",
-  "description": "lambda function converting a .gif to a time-lapse with music",
+  "description": "lambda function converting mp4s to a timelapse with music",
   "main": "index.js",
   "scripts": {
     "test": "gulp mocha"

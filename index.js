@@ -1,5 +1,6 @@
 var Q = require('q');
 var path = require('path');
+
 var execute = require('lambduh-execute');
 var validate = require('lambduh-validate');
 var download = require('lambduh-get-s3-object');
@@ -36,7 +37,6 @@ exports.handler = function(event, context) {
 
   //download mp4s
   .then(function(result) {
-    console.log('getting mp4 keys');
     var def = Q.defer();
 
     s3.listObjects({
@@ -51,7 +51,6 @@ exports.handler = function(event, context) {
             return object.Key;
         })
         keys = keys.filter(function(v) { return v; });
-        console.log(keys);
 
         var promises = [];
         var vidCount = 0;
@@ -65,7 +64,7 @@ exports.handler = function(event, context) {
 
         Q.all(promises)
           .then(function(results) {
-            console.log('downloaded ' + results.length + ' vids!');
+            console.log('downloaded ' + results.length + ' videos!');
             var timeout = 1000;
             setTimeout(function() {
               console.log(timeout + " ms later...");
@@ -97,7 +96,6 @@ exports.handler = function(event, context) {
 
   //upload timelapse
   .then(function(result) {
-    console.log('uploading');
     return upload(result, {
       dstBucket: result.bucket,
       dstKey: result.prefix + '--timelapse-final.mp4',
@@ -106,13 +104,12 @@ exports.handler = function(event, context) {
   })
 
   .then(function(result){
-    console.log('result');
+    console.log('finished');
     console.log(result);
     context.done()
   })
 
   .fail(function(err) {
-    console.log('errorrrrrr');
     console.log(err);
     context.done(null, err);
   });
