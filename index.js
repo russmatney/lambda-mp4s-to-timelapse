@@ -1,5 +1,7 @@
 var Q = require('q');
 var path = require('path');
+var req = require('request');
+var fs = require('fs');
 
 var execute = require('lambduh-execute');
 var validate = require('lambduh-validate');
@@ -16,7 +18,7 @@ exports.handler = function(event, context) {
 
   validate(result, {
     "bucket": true,
-    "songKey": true,
+    "songSrc": true,
     "mp4sSrcDir": true,
     "timelapseDstKey": true
   })
@@ -29,11 +31,31 @@ exports.handler = function(event, context) {
 
   //download song
   .then(function(result) {
-    return download(result, {
-      srcBucket: result.bucket,
-      srcKey: result.songKey,
-      downloadFilepath: '/tmp/song.mp3'
+    var def = Q.defer();
+
+    var downloadExternalFile = function(url, dest, cb) {
+      var file = fs.createWriteStream(dest);
+      file.on('finish', function() {
+        file.close(cb);  // close() is async, call cb after close completes.
+      });
+      file.on('error', function(err) { // Handle errors
+        fs.unlink(dest); // Delete the file async. (But we don't check the result)
+        if (cb) cb(err.message);
+      });
+      req(url).pipe(file);
+    };
+
+    downloadExternalFile(result.songSrc, "/tmp/song.mp3", function(err) {
+      if (err) {
+        console.log('download err!');
+        def.reject(err);
+      } else {
+        console.log('song download success!');
+        def.resolve(result);
+      }
     });
+
+    return def.promise;
   })
 
   //download mp4s
