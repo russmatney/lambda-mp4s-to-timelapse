@@ -78,7 +78,7 @@ exports.handler = function(event, context) {
         var vidCount = 0;
         keys.forEach(function(key) {
           promises.push(download(event, {
-            srcBucket: event.bucket,
+            srcBucket: event.sourceBucket,
             srcKey: key,
             downloadFilepath: '/tmp/videos/' + path.basename(key)
           }))
