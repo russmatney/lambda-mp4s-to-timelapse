@@ -14,23 +14,22 @@ var AWS = require('aws-sdk');
 var s3 = new AWS.S3();
 
 exports.handler = function(event, context) {
-  var result = event;
-
-  validate(result, {
-    "bucket": true,
-    "songSrc": true,
-    "mp4sSrcDir": true,
-    "timelapseDstKey": true
+  validate(event, {
+    "sourceBucket": true,
+    "sourceDir": true,
+    "musicUrl": true,
+    "destBucket": true,
+    "destKey": true
   })
 
-  .then(function(result) {
-    return execute(result, {
+  .then(function(event) {
+    return execute(event, {
       shell: 'mkdir -p /tmp/videos'
     })
   })
 
   //download song
-  .then(function(result) {
+  .then(function(event) {
     var def = Q.defer();
 
     var downloadExternalFile = function(url, dest, cb) {
@@ -39,19 +38,19 @@ exports.handler = function(event, context) {
         file.close(cb);  // close() is async, call cb after close completes.
       });
       file.on('error', function(err) { // Handle errors
-        fs.unlink(dest); // Delete the file async. (But we don't check the result)
+        fs.unlink(dest); // Delete the file async. (But we don't check the event)
         if (cb) cb(err.message);
       });
       req(url).pipe(file);
     };
 
-    downloadExternalFile(result.songSrc, "/tmp/song.mp3", function(err) {
+    downloadExternalFile(event.musicUrl, "/tmp/song.mp3", function(err) {
       if (err) {
         console.log('download err!');
         def.reject(err);
       } else {
         console.log('song download success!');
-        def.resolve(result);
+        def.resolve(event);
       }
     });
 
@@ -59,12 +58,12 @@ exports.handler = function(event, context) {
   })
 
   //download mp4s
-  .then(function(result) {
+  .then(function(event) {
     var def = Q.defer();
 
     s3.listObjects({
-      Bucket: result.bucket,
-      Prefix: result.mp4sSrcDir
+      Bucket: event.sourceBucket,
+      Prefix: event.sourceDir
     }, function(err, data) {
       if (err) def.reject(err);
       else {
@@ -78,8 +77,8 @@ exports.handler = function(event, context) {
         var promises = [];
         var vidCount = 0;
         keys.forEach(function(key) {
-          promises.push(download(result, {
-            srcBucket: result.bucket,
+          promises.push(download(event, {
+            srcBucket: event.bucket,
             srcKey: key,
             downloadFilepath: '/tmp/videos/' + path.basename(key)
           }))
@@ -105,8 +104,8 @@ exports.handler = function(event, context) {
   })
 
   //stitch mp4s together
-  .then(function(result) {
-    return execute(result, {
+  .then(function(event) {
+    return execute(event, {
       bashScript: '/var/task/stitch-mp4s',
       bashParams: [
         '/tmp/videos/**.mp4', //mp4s dir
@@ -118,17 +117,17 @@ exports.handler = function(event, context) {
   })
 
   //upload timelapse
-  .then(function(result) {
-    return upload(result, {
-      dstBucket: result.bucket,
-      dstKey: result.timelapseDstKey,
+  .then(function(event) {
+    return upload(event, {
+      dstBucket: event.destBucket,
+      dstKey: event.destKey,
       uploadFilepath: '/tmp/timelapse-final.mp4'
     })
   })
 
-  .then(function(result){
+  .then(function(event){
     console.log('finished');
-    console.log(result);
+    console.log(event);
     context.done()
   })
 
