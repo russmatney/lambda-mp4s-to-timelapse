@@ -27,6 +27,5 @@
     "lambduh-put-s3-object": "^1.0.0",
     "lambduh-validate": "^1.1.0",
     "q": "^1.2.0",
-    "request": "^2.55.0"
   }
 }
