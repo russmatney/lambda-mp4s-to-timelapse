@@ -1,12 +1,11 @@
 var Q = require('q');
 var path = require('path');
-var req = require('request');
-var fs = require('fs');
 
 var execute = require('lambduh-execute');
 var validate = require('lambduh-validate');
-var download = require('lambduh-get-s3-object');
+var s3Download = require('lambduh-get-s3-object');
 var upload = require('lambduh-put-s3-object');
+var downloadFile = require('lambduh-download-file');
 
 process.env['PATH'] = process.env['PATH'] + ':/tmp/:' + process.env['LAMBDA_TASK_ROOT']
 
@@ -30,31 +29,10 @@ exports.handler = function(event, context) {
 
   //download song
   .then(function(event) {
-    var def = Q.defer();
-
-    var downloadExternalFile = function(url, dest, cb) {
-      var file = fs.createWriteStream(dest);
-      file.on('finish', function() {
-        file.close(cb);  // close() is async, call cb after close completes.
-      });
-      file.on('error', function(err) { // Handle errors
-        fs.unlink(dest); // Delete the file async. (But we don't check the event)
-        if (cb) cb(err.message);
-      });
-      req(url).pipe(file);
-    };
-
-    downloadExternalFile(event.musicUrl, "/tmp/song.mp3", function(err) {
-      if (err) {
-        console.log('download err!');
-        def.reject(err);
-      } else {
-        console.log('song download success!');
-        def.resolve(event);
-      }
+    return downloadFile({
+      filepath: "/tmp/song.mp3",
+      url: event.musicUrl
     });
-
-    return def.promise;
   })
 
   //download mp4s
@@ -77,7 +55,7 @@ exports.handler = function(event, context) {
         var promises = [];
         var vidCount = 0;
         keys.forEach(function(key) {
-          promises.push(download(event, {
+          promises.push(s3Download(event, {
             srcBucket: event.sourceBucket,
             srcKey: key,
             downloadFilepath: '/tmp/videos/' + path.basename(key)

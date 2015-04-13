@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "aws-sdk": "2.1.20",
+    "lambduh-download-file": "^0.1.1",
     "lambduh-execute": "git://github.com/lambduh/lambduh-execute.git#master",
     "lambduh-get-s3-object": "^1.1.0",
     "lambduh-put-s3-object": "^1.0.0",
