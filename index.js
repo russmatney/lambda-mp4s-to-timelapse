@@ -29,10 +29,9 @@ exports.handler = function(event, context) {
 
   //download song
   .then(function(event) {
-    return downloadFile({
-      filepath: "/tmp/song.mp3",
-      url: event.musicUrl
-    });
+    event.filepath = "/tmp/song.mp3";
+    event.url = event.musicUrl;
+    return downloadFile(event);
   })
 
   //download mp4s
