@@ -1,6 +1,6 @@
-# bosco-files-to-timelapse
+# lambda-mp4s-to-timelapse
 
-converts files from s3 into a timelapse with endcard and music
+converts a slew of mp4s from s3 into a timelapse with music
 
 # Usage
 
@@ -17,8 +17,9 @@ Invoke this function like any lambda function, as documented in the aws sdk.
 
 ## required
 
-- `` - 
-- `` - 
-- `` - 
-- `` - 
+- `sourceBucket` - S3 bucket for the mp4s to be used
+- `sourceDir` - S3 keys prefix (folder) for the mp4s
+- `musicUrl` - Url for an mp3 to be downloaded and included in the timelapse
+- `destBucket` - S3 bucket to dump the timelapse into
+- `destKey` - Key for the file to be saved to on S3
 
