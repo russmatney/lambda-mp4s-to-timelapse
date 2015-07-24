@@ -1,22 +1,21 @@
 #!/bin/bash
 
 rm -f /tmp/list.txt
-
-for f in $1; do
-  printf "file '%s'\n" $f >> /tmp/list.txt
+for i in ${@:3}
+do
+  printf "file '%s'\n" $i >> /tmp/list.txt
 done
 
 ffmpeg -y \
   -f concat \
   -i /tmp/list.txt \
-  -i $2 \
+  -i $1 \
   -map 0:v \
   -map 1:a \
   -c copy \
   -strict experimental \
   -codec:a aac \
   -b:a 192k \
-  -shortest $3
+  -shortest $2
 
-rm /tmp/list.txt
-
+  rm /tmp/list.txt

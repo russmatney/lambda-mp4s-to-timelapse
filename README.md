@@ -1,6 +1,6 @@
 # lambda-mp4s-to-timelapse
 
-converts a slew of mp4s from s3 into a timelapse with music
+converts mp4s into a timelapse with music
 
 # Usage
 
@@ -15,11 +15,25 @@ Invoke this function like any lambda function, as documented in the aws sdk.
 
 # Payload
 
-## required
+*all fields are required*
 
-- `sourceBucket` - S3 bucket for the mp4s to be used
-- `sourceDir` - S3 keys prefix (folder) for the mp4s
+- `sourceFiles` - An array of mp4 urls  to be downloaded and included in the timelapse
 - `musicUrl` - Url for an mp3 to be downloaded and included in the timelapse
 - `destBucket` - S3 bucket to dump the timelapse into
 - `destKey` - Key for the file to be saved to on S3
+
+## example
+```json
+	{
+		"destBucket": "my-s3-bucket",
+		"destKey": "my-rendered-video",
+		"musicUrl": "http://example.com/songs/song.mp3",
+		"sourceFiles": [
+			"http://example.com/videos/my-video.mp4",
+			"http://example.com/videos/my-other-video.mp4",
+			"http://example.com/videos/example-video.mp4",
+			"http://example.com/videos/other-example-video.mp4",
+		]
+	}
+```
 
