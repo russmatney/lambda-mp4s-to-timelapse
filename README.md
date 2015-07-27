@@ -37,3 +37,10 @@ Invoke this function like any lambda function, as documented in the aws sdk.
 	}
 ```
 
+#Changelog
+
+
+- Switched mp4 source from s3 bucket to array sent via payload.
+- removed sourceBucket and sourceFolder as they are no longer needed (see above)
+- Modified order of parameters in `stitch` to: song, filename, mp4s, also changed loop that builds `/tmp/list.txt` to start at the third parameter and count forward until last param.  Allows `stitch` to take an unlimited amount of mp4s.
+- Moved both `stitch` and `ffmpeg` to root of project, paths where `index.js` was referencing them.   
