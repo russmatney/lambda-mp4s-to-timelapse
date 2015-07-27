@@ -14,8 +14,7 @@ var s3 = new AWS.S3();
 
 exports.handler = function(event, context) {
   validate(event, {
-    "sourceBucket": true,
-    "sourceDir": true,
+    "sourceFiles": true,
     "musicUrl": true,
     "destBucket": true,
     "destKey": true
@@ -38,43 +37,25 @@ exports.handler = function(event, context) {
   .then(function(event) {
     var def = Q.defer();
 
-    s3.listObjects({
-      Bucket: event.sourceBucket,
-      Prefix: event.sourceDir
-    }, function(err, data) {
-      if (err) def.reject(err);
-      else {
+    var promises = [];
+    var vidCount = event.sourceFiles.length;
+    event.sourceFiles.forEach(function(url) {
+      event.filepath = "/tmp/videos/"+url.substring(url.lastIndexOf('/')+1);
+      event.url = url;
+      promises.push(downloadFile(event))
+    });
 
-        var keys = data.Contents.map(function(object) {
-          if (!/final\.mp4$/.test(object.Key) && /\.mp4$/.test(object.Key))
-            return object.Key;
-        })
-        keys = keys.filter(function(v) { return v; });
-
-        var promises = [];
-        var vidCount = 0;
-        keys.forEach(function(key) {
-          promises.push(s3Download(event, {
-            srcBucket: event.sourceBucket,
-            srcKey: key,
-            downloadFilepath: '/tmp/videos/' + path.basename(key)
-          }))
-        });
-
-        Q.all(promises)
-          .then(function(results) {
-            console.log('downloaded ' + results.length + ' videos!');
-            var timeout = 1000;
-            setTimeout(function() {
-              console.log(timeout + " ms later...");
-              def.resolve(results[0]);
-            }, timeout);
-          })
-          .fail(function(err) {
-            def.reject(err);
-          });
-
-      }
+    Q.all(promises).then(function(results) {
+      console.log('downloaded ' + results.length + ' videos!');
+      var timeout = 1000;
+      setTimeout(function() {
+        console.log(timeout + " ms later...");
+        def.resolve(results[0]);
+      }, timeout);
+    })
+    .fail(function(err) {
+      console.log('failing here')
+      def.reject(err);
     });
 
     return def.promise;
@@ -83,11 +64,11 @@ exports.handler = function(event, context) {
   //stitch mp4s together
   .then(function(event) {
     return execute(event, {
-      bashScript: '/var/task/stitch-mp4s',
+      bashScript: '/var/task/stitch',
       bashParams: [
-        '/tmp/videos/**.mp4', //mp4s dir
         '/tmp/song.mp3', //input song
-        '/tmp/timelapse-final.mp4' //output filename
+        '/tmp/final.mp4', //output filename
+        '/tmp/videos/**.mp4' //mp4s dir
       ],
       logOutput: true
     })
@@ -97,8 +78,8 @@ exports.handler = function(event, context) {
   .then(function(event) {
     return upload(event, {
       dstBucket: event.destBucket,
-      dstKey: event.destKey,
-      uploadFilepath: '/tmp/timelapse-final.mp4'
+      dstKey: event.destKey+".mp4",
+      uploadFilepath: '/tmp/final.mp4'
     })
   })
 
@@ -110,7 +91,7 @@ exports.handler = function(event, context) {
 
   .fail(function(err) {
     console.log(err);
-    context.done(null, err);
+    context.done({"converted": true}, err);
   });
 
 }
